@@ -13,15 +13,22 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
 
-HF_MODEL = "stabilityai/stable-diffusion-2"
+MODEL = "stabilityai/stable-diffusion-2" # бесплатная текст→картинка модель
+HF_API_URL = f"https://router.huggingface.co/route/text-to-image/{MODEL}"
 
 
 def generate_image(prompt: str) -> bytes:
-    url = f"https://router.huggingface.co/models/{HF_MODEL}"
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    payload = {"inputs": prompt}
+    payload = {
+        "inputs": prompt,
+    }
 
-    response = requests.post(url, headers=headers, json=payload)
+    headers = {
+        "Authorization": f"Bearer {HF_TOKEN}",
+        "Accept": "image/png"
+    }
+
+    response = requests.post(HF_API_URL, headers=headers, json=payload)
+
     if response.status_code != 200:
         raise ValueError(f"HuggingFace API error {response.status_code}: {response.text}")
 
@@ -32,13 +39,14 @@ async def start(message: Message):
     await message.answer("Привет! Напиши описание изображения, и я сгенерирую картинку 🎨🤖")
 
 @dp.message()
-async def generate_msg(message: Message):
+async def on_message(message: Message):
     prompt = message.text
+
     await message.answer(f"Генерирую изображение, подожди 5-10 секунд... 🔄🤗")
 
     try:
-        img_bytes = generate_image(prompt)
-        await message.answer_photo(photo=img_bytes, caption="Изображение готово!😊")
+        img = generate_image(prompt)
+        await message.answer_photo(photo=img, caption="Изображение готово!😊")
     except Exception as e:
         await message.answer(f"Ошибка генерации: {e}")
 
