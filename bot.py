@@ -17,7 +17,7 @@ HF_MODEL = "stabilityai/stable-diffusion-2"
 
 
 def generate_image(prompt: str) -> bytes:
-    url = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+    url = f"https://router.huggingface.co/models/{HF_MODEL}"
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
     payload = {"inputs": prompt}
 
