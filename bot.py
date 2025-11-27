@@ -1,35 +1,46 @@
 import os
+import requests
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message
 from aiogram.filters import Command
 from dotenv import load_dotenv
-from openai import OpenAI
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
-client = OpenAI(api_key=OPENAI_API_KEY)
+
+HF_MODEL = "stabilityai/stable-diffusion-2"
+
+
+def generate_image(prompt: str) -> bytes:
+    url = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    payload = {"inputs": prompt}
+
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code != 200:
+        raise ValueError(f"HuggingFace API error {response.status_code}: {response.text}")
+
+    return response.content
 
 @dp.message(Command("start"))
 async def start(message: Message):
     await message.answer("Привет! Напиши описание изображения, и я сгенерирую картинку 🎨🤖")
 
 @dp.message()
-async def generate_image(message: Message):
+async def generate_msg(message: Message):
     prompt = message.text
     await message.answer(f"Генерирую изображение, подожди 5-10 секунд... 🔄🤗")
 
-    img = client.images.generate(
-        model="gpt-image-1",
-        prompt=prompt,
-        size="1024x1024"
-    )
-
-    await message.answer_photo(img.data[0].url, caption="Изображение готово!😊")
+    try:
+        img_bytes = generate_image(prompt)
+        await message.answer_photo(photo=img_bytes, caption="Изображение готово!😊")
+    except Exception as e:
+        await message.answer(f"Ошибка генерации: {e}")
 
 if __name__ == "__main__":
     import asyncio
